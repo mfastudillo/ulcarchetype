@@ -7,7 +7,7 @@ ulcarchetype is a Python library that provides some simple tools to characterize
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install ulcarchetype
 
 ```bash
-pip install foobar
+pip install .
 ```
 
 ## Usage
@@ -26,6 +26,5 @@ cf_add_uncertainty(method) # returns a list of CFs taking into account archetype
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
-
 ## License
-[MIT](https://choosealicense.com/licenses/mit/)
+[BSD 3-Clause License]
