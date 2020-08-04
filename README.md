@@ -1,13 +1,13 @@
 # ulcarchetype
 
-ulcarchetype is a Python library that provides some simple tools to characterize the uncertainty due to archetype "underspecification" in life cycle assessment. Is meant to be used with the LCA software Brightway2. 
+ulcarchetype is a Python library that provides some simple tools to characterize the uncertainty due to archetype "underspecification" in life cycle assessment (i.e. when the "subcompartment" is not specified). It is meant to be used with the LCA software [Brightway2](https://brightway.dev/).
 
 ## Installation
 
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install ulcarchetype
 
 ```bash
-pip install .
+pip install ulcarchetype
 ```
 
 ## Usage
@@ -27,4 +27,4 @@ cf_add_uncertainty(method) # returns a list of CFs taking into account archetype
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
-[BSD 3-Clause License]
+BSD 3-Clause License
