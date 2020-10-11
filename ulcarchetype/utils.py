@@ -51,6 +51,7 @@ def minmax_archetype(cf_df):
 
     # dict with the keys of flows with unespecified archetype
     biosphere_dict_unclassified_rev = uncertain_archetype_dict()
+    assert len(biosphere_dict_unclassified_rev)>0,'the function needs the biosphere database to be defined to work'
 
     if None not in cf_df.subcompartment.unique():
         # case where there's no undefined subcompartment case
@@ -119,7 +120,8 @@ def get_cf_info(m):
     given the name. Currently prepared only for methods without
     uncertainty, where CF are only a tuple (key,amount)"""
 
-    assert m in bw.methods
+    assert m in bw.methods,f"{m} not in bw.methods"
+    assert is_method_uncertain(m) is False,f"{m} has uncertain CF. Not yet supported"
 
     M = bw.Method(m)
     cfs = M.load()
@@ -127,10 +129,10 @@ def get_cf_info(m):
     for cf in cfs:
         key,value = cf
         flow = bw.get_activity(key)
-        compartiments = flow["categories"]
-        compartiment = compartiments[0]
+        compartments = flow["categories"]
+        compartment = compartments[0]
         try:
-            subcompartment = compartiments[1]
+            subcompartment = compartments[1]
         except IndexError:
             subcompartment = None
         info.append(
@@ -141,7 +143,7 @@ def get_cf_info(m):
                 value,
                 flow["unit"],
                 flow["type"],
-                compartiment,
+                compartment,
                 subcompartment,
             )
         )
