@@ -29,17 +29,78 @@ class LCIAMethod():
         """maximum level of 'depth' of the contexts used in the method """
         return max([cf.level for cf in self.cfs])
     
-    def get_childs(self,cf):
+    def get_children(self,cf):
         """for a given CF, returns the cfs whose context is a more detailed 
-        version of the CF context"""
-        childs = [cf_child for cf_child in self.cfs if (cf_child.level==cf.level+1) 
+        version of the CF context, only one level lower"""
+        #TODO: maybe simply the level is lower
+        children = [cf_child for cf_child in self.cfs if (cf_child.level==cf.level+1) 
          and (cf.name==cf_child.name) 
          and (cf.directionality==cf_child.directionality)
          and (cf.context==cf_child.context[:-1])]
         
-        return childs
+        return children
+
+    def get_descendents(self,cf):
+        """for a given CF, returns the cfs whose context is a more detailed 
+        version of the CF context, regardless of the level"""
+        children = [cf_child for cf_child in self.cfs if (cf_child.level>cf.level) 
+         and (cf.name == cf_child.name) 
+         and (cf.directionality == cf_child.directionality)
+         and (cf.context == cf_child.context[0:cf.level])]
+        
+        return children
+
+    def set_freqparent(self,totalamount_dict):
+        """adds a frequency to a CF relative to the parent level"""
+
+        # loops the CF, get the children and set 
+        for cf in sorted(self.cfs,key=lambda x:x.level,reverse=True):
+            children = self.get_children(cf)
+
+            if len(children)>0:
+                freq = {children:totalamount_dict.get((children.database,children.code),0)}
+                freq = {k:v/sum(freq.values()) for k,v in freq.items()}
+
     
     def transform_method(self,method):
+
+        for key,cf in method.load():
+            
+            if isinstance(cf,dict):
+                raise ValueError(f"for the moment uncertain CF are not supported {cf}")
+
+            flow = bw.get_activity(key)
+            database,code = key
+            cntx = read_category(flow['categories'])
+
+            cf = CharacterisationFactor(database=database,
+                                       code=code,
+                                       name=flow['name'],
+                                       unit=flow['unit'],
+                                       directionality=flow['type'],
+                                       context=cntx,
+                                       level=len(cntx),
+                                       value=cf)
+            self.cfs += [cf]
+
+        # once all cfs have been added, we can loop again and 
+        # add the possible values
+        for cf in sorted(self.cfs,key=lambda x:x.level,reverse=True):
+            children = self.get_children(cf)
+
+            if len(children)>0:
+                # case when children have not themselves possible values
+                possible_values = [c.value for c in children]
+                # filter out very similar ones those with relative diff < 0.01%
+                possible_values = filter_close_list(possible_values,rel_tol=1e-5)
+                cf.values_possible = possible_values
+                cf.uncertainty_param['uncertainty type'] = 1 # by default no uncertainty
+                cf.uncertainty_param['minimum'] = min(possible_values)
+                cf.uncertainty_param['maximum'] = max(possible_values)
+                cf.uncertainty_param['amount'] = cf.value
+                cf.uncertainty_param['loc'] = statistics.mean(possible_values)
+
+    def transform_method2(self,method):
 
         for key,cf in method.load():
             flow = bw.get_activity(key)
@@ -58,12 +119,21 @@ class LCIAMethod():
 
         # once all cfs have been added, we can loop again and 
         # add the possible values
-        for cf in sorted(self.cfs.cfs,key=lambda x:x.level,reverse=True):
-            childs = self.get_childs(cf)
+        for cf in sorted(self.cfs,key=lambda x:x.level,reverse=True):
+            children = self.get_descendents(cf)
 
-            if len(childs)>0:
-                # case when childs have not themselves possible values
-                possible_values = [c.value for c in childs]
+            if len(children)>0:
+                
+                possible_values = []
+                for child in children:
+                    # if it only has one then
+                    if child.values_possible == []:
+                        child.values_possible = [child.value]
+                    
+                    possible_values += child.values_possible
+
+                
+
                 # filter out very similar ones those with relative diff < 0.01%
                 possible_values = filter_close_list(possible_values,rel_tol=1e-5)
                 cf.values_possible = possible_values
@@ -73,7 +143,7 @@ class LCIAMethod():
                 cf.uncertainty_param['amount'] = cf.value
                 #TODO: clarify why is "amount" are not "loc", not clear
                 cf.uncertainty_param['loc'] = statistics.mean(possible_values)
-                
+
 
     def set_uncertainty_type(self,utype):
         """sets the uncertainty type """
