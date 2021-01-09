@@ -4,6 +4,7 @@ from typing import List
 import math
 import statistics
 import brightway2 as bw
+import numpy as np
 
 @dataclass
 class CharacterisationFactor():
@@ -101,8 +102,14 @@ class LCIAMethod():
                 cf.uncertainty_param['loc'] = statistics.mean(possible_values)
 
     def transform_method2(self,method):
+        """transforms an brightway impact assessment method on a method following
+        the object structure of the ulcarchetype library. """
 
         for key,cf in method.load():
+            
+            if isinstance(cf,dict):
+                raise ValueError(f"for the moment uncertain CF are not supported {cf}")
+
             flow = bw.get_activity(key)
             database,code = key
             cntx = read_category(flow['categories'])
@@ -128,25 +135,41 @@ class LCIAMethod():
                 for child in children:
                     # if it only has one then
                     if child.values_possible == []:
-                        child.values_possible = [child.value]
+                        child.values_possible = [{'value':child.value,'freq':1/len(children)}]
                     
                     possible_values += child.values_possible
 
-                
 
-                # filter out very similar ones those with relative diff < 0.01%
-                possible_values = filter_close_list(possible_values,rel_tol=1e-5)
-                cf.values_possible = possible_values
-                cf.uncertainty_param['uncertainty type'] = 1 # by default no uncertainty
-                cf.uncertainty_param['minimum'] = min(possible_values)
-                cf.uncertainty_param['maximum'] = max(possible_values)
-                cf.uncertainty_param['amount'] = cf.value
-                #TODO: clarify why is "amount" are not "loc", not clear
-                cf.uncertainty_param['loc'] = statistics.mean(possible_values)
+                # possible values and their frequencies
+                vals = [v['value'] for v in possible_values]
+                freqs = [v['freq'] for v in possible_values]
+
+                # if there are only two possible values and are very very close,
+                # ignore the case
+                if (len(possible_values) == 2) and (math.isclose(*vals)):
+                    pass
+                
+                else:
+
+                    weighed_avg =  np.average(vals,weights=freqs)
+
+                    weighed_std = math.sqrt(np.average((vals-weighed_avg)**2,weights=freqs))
+
+                    cf.values_possible = possible_values
+                    cf.uncertainty_param['uncertainty type'] = 1 # by default no uncertainty
+                    cf.uncertainty_param['minimum'] = min(vals)
+                    cf.uncertainty_param['maximum'] = max(vals)
+                    cf.uncertainty_param['amount'] = cf.value
+                    cf.uncertainty_param['loc'] = weighed_avg
+                    cf.uncertainty_param['scale'] = weighed_std
+
+
 
 
     def set_uncertainty_type(self,utype):
         """sets the uncertainty type """
+        # TODO: use stat_arrays package to define utype as strings.. or improve
+        # docstring
         assert isinstance(utype,int),'uncertainty type must be an integer type'
         
         for cf in self.cfs:
