@@ -10,7 +10,7 @@ setuptools.setup(name="ulcarchetype",
       description="package to estimate uncertainty related to lca archetypes",
       long_description_content_type='text/markdown',
       long_description=open("README.md").read(),
-      install_requires=["pandas","brightway2",'numpy'],
+      install_requires=["pandas","brightway25",'numpy'],
       classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
