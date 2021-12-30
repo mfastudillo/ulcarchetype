@@ -3,7 +3,7 @@ from dataclasses import dataclass,field
 from typing import List
 import math
 import statistics
-import brightway2 as bw
+import bw2data
 import numpy as np
 
 @dataclass
@@ -64,13 +64,14 @@ class LCIAMethod():
 
     
     def transform_method(self,method):
-
+        """transforms an brightway impact assessment method on a method following
+        the object structure of the ulcarchetype library. """
         for key,cf in method.load():
             
             if isinstance(cf,dict):
                 raise ValueError(f"for the moment uncertain CF are not supported {cf}")
 
-            flow = bw.get_activity(key)
+            flow = bw2data.get_activity(key)
             database,code = key
             cntx = read_category(flow['categories'])
 
@@ -110,7 +111,7 @@ class LCIAMethod():
             if isinstance(cf,dict):
                 raise ValueError(f"for the moment uncertain CF are not supported {cf}")
 
-            flow = bw.get_activity(key)
+            flow = bw2data.get_activity(key)
             database,code = key
             cntx = read_category(flow['categories'])
 
@@ -143,6 +144,8 @@ class LCIAMethod():
                 # possible values and their frequencies
                 vals = [v['value'] for v in possible_values]
                 freqs = [v['freq'] for v in possible_values]
+
+                assert math.isclose(sum(freqs),1),'frequency sum should be 100%'
 
                 # if there are only two possible values and are very very close,
                 # ignore the case
@@ -229,12 +232,44 @@ def filter_close_list(alist,rel_tol=1e-4):
     return filtered_list
 
 def read_category(category):
-    
-    if len(category)==2:
-        compartment,subcompartment = category
-        result = [compartment] + subcompartment.split(',')
-    elif len(category)==1:
-        compartment = category[0]
-        result = [compartment]
-        
-    return result
+    """transforms the category of a flowable into a list.
+    (e.g. ('air','urban') -> ['air','urban']
+          ('air')
+    . """
+    # if len(category)==2:
+    #     compartment,subcompartment = category
+    #     result = [compartment] + subcompartment.split(',')
+    # elif len(category)==1:
+    #     compartment = category[0]
+    #     result = [compartment]
+    reclass = {
+    # ('air',),
+    # ('air', 'indoor'),
+    # ('air', 'low population density, long-term'),
+    # ('air', 'lower stratosphere + upper troposphere'),
+    # ('air', 'non-urban air or from high stacks'),
+    # ('air', 'urban air close to ground'),
+    # ('economic', 'primary production factor'),
+    # ('inventory indicator', 'output flow'),
+    # ('inventory indicator', 'resource use'),
+    # ('inventory indicator', 'waste'),
+    # ('natural resource', 'biotic'),
+    # ('natural resource', 'fossil well'),
+    # ('natural resource', 'in air'),
+    # ('natural resource', 'in ground'),
+    # ('natural resource', 'in water'),
+    # ('natural resource', 'land'),
+    # ('social',),
+    # ('soil',),
+    # ('soil', 'agricultural'),
+    # ('soil', 'forestry'),
+    # ('soil', 'industrial'),
+    # ('water',),
+    # ('water', 'fossil well'),
+    # ('water', 'ground-'),
+    ('water', 'ground-, long-term'):('water', 'ground-','long-term'),
+    # ('water', 'ocean'),
+    # ('water', 'surface water')
+    }
+
+    return reclass.get(category,category)
