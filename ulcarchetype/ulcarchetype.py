@@ -126,7 +126,7 @@ class LCIAMethod():
             self.cfs += [cf]
 
         # once all cfs have been added, we can loop again and 
-        # add the possible values
+        # add the possible values #TODO as a separate function.
         for cf in sorted(self.cfs,key=lambda x:x.level,reverse=True):
             children = self.get_descendents(cf)
 
@@ -136,36 +136,47 @@ class LCIAMethod():
                 for child in children:
                     # if it only has one then
                     if child.values_possible == []:
-                        child.values_possible = [{'value':child.value,'freq':1/len(children)}]
+                        child.values_possible = [{'value':child.value,
+                                                  'freq':1/len(children)}]
                     
                     possible_values += child.values_possible
+            
+                cf.values_possible = possible_values
 
+            # if there are only two possible values and are very very close,
+            # ignore the case
+ 
+# TODO: try to facilitate the use of given frequencies, separating the possible
+# values from the setting of the rest of parameters.
 
-                # possible values and their frequencies
-                vals = [v['value'] for v in possible_values]
-                freqs = [v['freq'] for v in possible_values]
+    def set_uncertainty_from_possiblevalues(self):
+        """"""
 
-                assert math.isclose(sum(freqs),1),'frequency sum should be 100%'
+        for cf in self.cfs:
+            possible_values = cf.values_possible
 
-                # if there are only two possible values and are very very close,
-                # ignore the case
-                if (len(possible_values) == 2) and (math.isclose(*vals)):
-                    pass
-                
-                else:
+            if len(possible_values) == 1:
+                continue
 
-                    weighed_avg =  np.average(vals,weights=freqs)
+            # possible values and their frequencies
+            vals = [v['value'] for v in possible_values]
+            freqs = [v['freq'] for v in possible_values]
 
-                    weighed_std = math.sqrt(np.average((vals-weighed_avg)**2,weights=freqs))
+            assert math.isclose(sum(freqs),1),f'frequency sum should be 100% {possible_values} {cf}'
 
-                    cf.values_possible = possible_values
-                    cf.uncertainty_param['uncertainty type'] = 1 # by default no uncertainty
-                    cf.uncertainty_param['minimum'] = min(vals)
-                    cf.uncertainty_param['maximum'] = max(vals)
-                    cf.uncertainty_param['amount'] = cf.value
-                    cf.uncertainty_param['loc'] = weighed_avg
-                    cf.uncertainty_param['scale'] = weighed_std
+            if (len(possible_values) == 2) and (math.isclose(*vals)):
+                continue
+            else:
 
+                weighed_avg =  np.average(vals,weights=freqs)
+                weighed_std = math.sqrt(np.average((vals-weighed_avg)**2,weights=freqs))
+
+                cf.uncertainty_param['uncertainty type'] = 1 # by default no uncertainty
+                cf.uncertainty_param['minimum'] = min(vals)
+                cf.uncertainty_param['maximum'] = max(vals)
+                cf.uncertainty_param['amount'] = cf.value
+                cf.uncertainty_param['loc'] = weighed_avg
+                cf.uncertainty_param['scale'] = weighed_std
 
 
 
