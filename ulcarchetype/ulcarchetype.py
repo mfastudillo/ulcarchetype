@@ -180,7 +180,7 @@ class LCIAMethod():
 
 
 
-    def set_uncertainty_type(self,utype):
+    def set_uncertainty_type(self,utype:int):
         """sets the uncertainty type """
         # TODO: use stat_arrays package to define utype as strings.. or improve
         # docstring
