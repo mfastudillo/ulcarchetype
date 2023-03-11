@@ -2,7 +2,7 @@ from ulcarchetype import ulcarchetype
 import bw2data
 import bw2io
 
-bw2data.projects.set_current('uncertain archetype IV')
+bw2data.projects.set_current('test_ulcarchetype')
 
 
 # configuration 
