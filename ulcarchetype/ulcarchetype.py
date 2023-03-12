@@ -66,24 +66,8 @@ class LCIAMethod():
     def transform_method(self,method):
         """transforms an brightway impact assessment method on a method following
         the object structure of the ulcarchetype library. """
-        for key,cf in method.load():
-            
-            if isinstance(cf,dict):
-                raise ValueError(f"for the moment uncertain CF are not supported {cf}")
 
-            flow = bw2data.get_activity(key)
-            database,code = key
-            cntx = read_category(flow['categories'])
-
-            cf = CharacterisationFactor(database=database,
-                                       code=code,
-                                       name=flow['name'],
-                                       unit=flow['unit'],
-                                       directionality=flow['type'],
-                                       context=cntx,
-                                       level=len(cntx),
-                                       value=cf)
-            self.cfs += [cf]
+        self.cfs = initialise_cf_list(method)
 
         # once all cfs have been added, we can loop again and 
         # add the possible values
@@ -106,24 +90,8 @@ class LCIAMethod():
         """transforms an brightway impact assessment method on a method following
         the object structure of the ulcarchetype library. """
 
-        for key,cf in method.load():
-            
-            if isinstance(cf,dict):
-                raise ValueError(f"for the moment uncertain CF are not supported {cf}")
 
-            flow = bw2data.get_activity(key)
-            database,code = key
-            cntx = read_category(flow['categories'])
-
-            cf = CharacterisationFactor(database=database,
-                                       code=code,
-                                       name=flow['name'],
-                                       unit=flow['unit'],
-                                       directionality=flow['type'],
-                                       context=cntx,
-                                       level=len(cntx),
-                                       value=cf)
-            self.cfs += [cf]
+        self.cfs = initialise_cf_list(method)
 
         # once all cfs have been added, we can loop again and 
         # add the possible values #TODO as a separate function.
@@ -284,3 +252,27 @@ def read_category(category):
     }
 
     return reclass.get(category,category)
+
+
+def initialise_cf_list(method):
+
+    cfs = []
+    for key,cf in method.load():
+            
+        if isinstance(cf,dict):
+            raise ValueError(f"for the moment uncertain CF are not supported {cf}")
+
+        flow = bw2data.get_activity(key)
+        database,code = key
+        cntx = read_category(flow['categories'])
+
+        cf = CharacterisationFactor(database=database,
+                                    code=code,
+                                    name=flow['name'],
+                                    unit=flow['unit'],
+                                    directionality=flow['type'],
+                                    context=cntx,
+                                    level=len(cntx),
+                                    value=cf)
+        cfs += [cf]
+    return cfs
