@@ -13,14 +13,22 @@ pip install ulcarchetype
 ## Usage
 
 ```python
-import brightway2 as bw
-from ulcarchetype.utils import get_cf_info,minmax_archetype,cf_add_uncertainty
+import bw2data as bwd
+from ulcarchetype.ulcarchetype import LCIAMethod
 
-method = bw.methods.random()
-cf_df = get_cf_info(method) # returns a dataframe with data on characterisation factors
-minmax_archetype(cf_df) # returns a dataframe with data needed to define uncertain CFs
-# or simply
-cf_add_uncertainty(method) # returns a list of CFs taking into account archetype uncertainty
+
+method_original = bwd.Method(('name of method without uncertainty',))
+
+# transform impact assessment method
+method_u = LCIAMethod(method_original)
+method_u.transform_method(m)
+method_u.set_uncertainty_type(4) # 4 represents uniform, other values are possible
+cfs = method_u.build_cf_list() # list of characterisation factors
+
+# register new version of the method 
+new_method = bwd.Method(('name of method with uncertainty',))
+new_method.register(description='version accounting for uncertainty in undefined archetypes')
+new_method.write(cfs)
 ```
 
 ## Contributing
