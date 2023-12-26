@@ -257,13 +257,12 @@ def read_category(category):
 def initialise_cf_list(method):
 
     cfs = []
-    for key,cf in method.load():
+    for (database,code),cf in method.load():
             
         if isinstance(cf,dict):
             raise ValueError(f"for the moment uncertain CF are not supported {cf}")
 
-        flow = bw2data.get_activity(key)
-        database,code = key
+        flow = bw2data.Database(database).get(code)
         cntx = read_category(flow['categories'])
 
         cf = CharacterisationFactor(database=database,
