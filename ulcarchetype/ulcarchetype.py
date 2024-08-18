@@ -30,7 +30,7 @@ class LCIAMethod():
         """maximum level of 'depth' of the contexts used in the method """
         return max([cf.level for cf in self.cfs])
     
-    def get_children(self,cf):
+    def get_children(self,cf:CharacterisationFactor)->list:
         """for a given CF, returns the cfs whose context is a more detailed 
         version of the CF context, only one level lower"""
         #TODO: maybe simply the level is lower
@@ -41,7 +41,7 @@ class LCIAMethod():
         
         return children
 
-    def get_descendents(self,cf):
+    def get_descendents(self,cf)->list:
         """for a given CF, returns the cfs whose context is a more detailed 
         version of the CF context, regardless of the level"""
         children = [cf_child for cf_child in self.cfs if (cf_child.level>cf.level) 
@@ -89,7 +89,6 @@ class LCIAMethod():
     def transform_method2(self,method):
         """transforms an brightway impact assessment method on a method following
         the object structure of the ulcarchetype library. """
-
 
         self.cfs = initialise_cf_list(method)
 
@@ -200,7 +199,7 @@ def pairwise(iterable):
     next(b, None)
     return zip(a,b)
 
-def filter_close_list(alist,rel_tol=1e-4):
+def filter_close_list(alist:list,rel_tol=1e-4)->list:
     """removes close elements from a list"""
     filtered_list = alist.copy()
     
@@ -254,13 +253,13 @@ def read_category(category):
     return reclass.get(category,category)
 
 
-def initialise_cf_list(method):
+def initialise_cf_list(method)->list:
 
     cfs = []
     for (database,code),cf in method.load():
             
         if isinstance(cf,dict):
-            raise ValueError(f"for the moment uncertain CF are not supported {cf}")
+            raise NotImplementedError(f"for the moment uncertain CF are not supported {cf}")
 
         flow = bw2data.Database(database).get(code)
         cntx = read_category(flow['categories'])
