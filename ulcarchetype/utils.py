@@ -1,17 +1,21 @@
-import brightway2 as bw
 import pandas as pd
 import numpy as np
 import math
+import bw2data as bwd
 
-def is_method_uncertain(method):
-    """check if method is uncertain"""
-    cfs = bw.Method(method).load()
+def is_method_uncertain(method:tuple):
+    """check if method is uncertain
+    args:
+        method name (tuple)
+    returns:
+        Bool indicating if the method has uncertain characterisation factors"""
+    cfs = bwd.Method(method).load()
     cf_values = [cf_value for flow, cf_value in cfs]
 
     return any(isinstance(x, dict) for x in cf_values)
 
 
-def uncertain_archetype_dict(biosphere_database=bw.Database("biosphere3")):
+def uncertain_archetype_dict(biosphere_database=bwd.Database("biosphere3")):
     """returns a dict with the key for all the flows without archetype defiend"""
 
     biosphere_dict_unclassified = {}
@@ -33,7 +37,7 @@ def uncertain_archetype_dict(biosphere_database=bw.Database("biosphere3")):
 
 
 
-def minmax_archetype(cf_df):
+def minmax_archetype(cf_df:pd.DataFrame):
     """
     args:
         a pandas dataframe as formated by the function get_cf_info
@@ -115,20 +119,25 @@ def minmax_archetype(cf_df):
     return df_minmax
 
 
-def get_cf_info(m):
-    """extracts info on the characterisation factors of a method
-    given the name. Currently prepared only for methods without
-    uncertainty, where CF are only a tuple (key,amount)"""
+def get_cf_info(m:tuple):
+    """extracts info on the characterisation factors of a method. 
+    Currently prepared only for methods without
+    uncertainty (i.e. the CFs are only a tuple (key,amount))
+    args:
+        m: impact assessment method name (tuple)
+    returns:
+        dailed info on the characterisation factors (pandas DataFrame)
+    """
 
-    assert m in bw.methods,f"{m} not in bw.methods"
+    assert m in bwd.methods,f"{m} not in bw.methods"
     assert is_method_uncertain(m) is False,f"{m} has uncertain CF. Not yet supported"
 
-    M = bw.Method(m)
+    M = bwd.Method(m)
     cfs = M.load()
     info = []
     for cf in cfs:
         key,value = cf
-        flow = bw.get_activity(key)
+        flow = bwd.get_activity(key)
         compartments = flow["categories"]
         compartment = compartments[0]
         try:
@@ -225,3 +234,32 @@ def cf_add_uncertainty(method, uncertainty_type=4):
         assert len(cflist_uncertain) + len(cflist_certain) == number_cf
     
     return cflist
+
+
+
+
+class OnlineVariance(object):
+    """
+    Welford's algorithm computes the sample variance incrementally.
+    https://stackoverflow.com/questions/5543651/computing-standard-deviation-in-a-stream
+    """
+
+    def __init__(self, iterable=None, ddof=1):
+        self.ddof, self.n, self.mean, self.M2 = ddof, 0, 0.0, 0.0
+        if iterable is not None:
+            for datum in iterable:
+                self.include(datum)
+
+    def include(self, datum):
+        self.n += 1
+        self.delta = datum - self.mean
+        self.mean += self.delta / self.n
+        self.M2 += self.delta * (datum - self.mean)
+
+    @property
+    def variance(self):
+        return self.M2 / (self.n - self.ddof)
+
+    @property
+    def std(self):
+        return np.sqrt(self.variance)

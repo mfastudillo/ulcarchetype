@@ -3,7 +3,8 @@ from dataclasses import dataclass,field
 from typing import List
 import math
 import statistics
-import brightway2 as bw
+import bw2data
+import numpy as np
 
 @dataclass
 class CharacterisationFactor():
@@ -29,7 +30,7 @@ class LCIAMethod():
         """maximum level of 'depth' of the contexts used in the method """
         return max([cf.level for cf in self.cfs])
     
-    def get_children(self,cf):
+    def get_children(self,cf:CharacterisationFactor)->list:
         """for a given CF, returns the cfs whose context is a more detailed 
         version of the CF context, only one level lower"""
         #TODO: maybe simply the level is lower
@@ -40,7 +41,7 @@ class LCIAMethod():
         
         return children
 
-    def get_descendents(self,cf):
+    def get_descendents(self,cf)->list:
         """for a given CF, returns the cfs whose context is a more detailed 
         version of the CF context, regardless of the level"""
         children = [cf_child for cf_child in self.cfs if (cf_child.level>cf.level) 
@@ -63,25 +64,10 @@ class LCIAMethod():
 
     
     def transform_method(self,method):
+        """transforms an brightway impact assessment method on a method following
+        the object structure of the ulcarchetype library. """
 
-        for key,cf in method.load():
-            
-            if isinstance(cf,dict):
-                raise ValueError(f"for the moment uncertain CF are not supported {cf}")
-
-            flow = bw.get_activity(key)
-            database,code = key
-            cntx = read_category(flow['categories'])
-
-            cf = CharacterisationFactor(database=database,
-                                       code=code,
-                                       name=flow['name'],
-                                       unit=flow['unit'],
-                                       directionality=flow['type'],
-                                       context=cntx,
-                                       level=len(cntx),
-                                       value=cf)
-            self.cfs += [cf]
+        self.cfs = initialise_cf_list(method)
 
         # once all cfs have been added, we can loop again and 
         # add the possible values
@@ -101,24 +87,13 @@ class LCIAMethod():
                 cf.uncertainty_param['loc'] = statistics.mean(possible_values)
 
     def transform_method2(self,method):
+        """transforms an brightway impact assessment method on a method following
+        the object structure of the ulcarchetype library. """
 
-        for key,cf in method.load():
-            flow = bw.get_activity(key)
-            database,code = key
-            cntx = read_category(flow['categories'])
-
-            cf = CharacterisationFactor(database=database,
-                                       code=code,
-                                       name=flow['name'],
-                                       unit=flow['unit'],
-                                       directionality=flow['type'],
-                                       context=cntx,
-                                       level=len(cntx),
-                                       value=cf)
-            self.cfs += [cf]
+        self.cfs = initialise_cf_list(method)
 
         # once all cfs have been added, we can loop again and 
-        # add the possible values
+        # add the possible values #TODO as a separate function.
         for cf in sorted(self.cfs,key=lambda x:x.level,reverse=True):
             children = self.get_descendents(cf)
 
@@ -128,25 +103,54 @@ class LCIAMethod():
                 for child in children:
                     # if it only has one then
                     if child.values_possible == []:
-                        child.values_possible = [child.value]
+                        child.values_possible = [{'value':child.value,
+                                                  'freq':1/len(children)}]
                     
                     possible_values += child.values_possible
-
-                
-
-                # filter out very similar ones those with relative diff < 0.01%
-                possible_values = filter_close_list(possible_values,rel_tol=1e-5)
+            
                 cf.values_possible = possible_values
+
+            # if there are only two possible values and are very very close,
+            # ignore the case
+ 
+# TODO: try to facilitate the use of given frequencies, separating the possible
+# values from the setting of the rest of parameters.
+
+    def set_uncertainty_from_possiblevalues(self):
+        """"""
+
+        for cf in self.cfs:
+            possible_values = cf.values_possible
+
+            if len(possible_values) == 1:
+                continue
+
+            # possible values and their frequencies
+            vals = [v['value'] for v in possible_values]
+            freqs = [v['freq'] for v in possible_values]
+
+            assert math.isclose(sum(freqs),1),f'frequency sum should be 100% {possible_values} {cf}'
+
+            if (len(possible_values) == 2) and (math.isclose(*vals)):
+                continue
+            else:
+
+                weighed_avg =  np.average(vals,weights=freqs)
+                weighed_std = math.sqrt(np.average((vals-weighed_avg)**2,weights=freqs))
+
                 cf.uncertainty_param['uncertainty type'] = 1 # by default no uncertainty
-                cf.uncertainty_param['minimum'] = min(possible_values)
-                cf.uncertainty_param['maximum'] = max(possible_values)
+                cf.uncertainty_param['minimum'] = min(vals)
+                cf.uncertainty_param['maximum'] = max(vals)
                 cf.uncertainty_param['amount'] = cf.value
-                #TODO: clarify why is "amount" are not "loc", not clear
-                cf.uncertainty_param['loc'] = statistics.mean(possible_values)
+                cf.uncertainty_param['loc'] = weighed_avg
+                cf.uncertainty_param['scale'] = weighed_std
 
 
-    def set_uncertainty_type(self,utype):
+
+    def set_uncertainty_type(self,utype:int):
         """sets the uncertainty type """
+        # TODO: use stat_arrays package to define utype as strings.. or improve
+        # docstring
         assert isinstance(utype,int),'uncertainty type must be an integer type'
         
         for cf in self.cfs:
@@ -195,7 +199,7 @@ def pairwise(iterable):
     next(b, None)
     return zip(a,b)
 
-def filter_close_list(alist,rel_tol=1e-4):
+def filter_close_list(alist:list,rel_tol=1e-4)->list:
     """removes close elements from a list"""
     filtered_list = alist.copy()
     
@@ -206,12 +210,67 @@ def filter_close_list(alist,rel_tol=1e-4):
     return filtered_list
 
 def read_category(category):
-    
-    if len(category)==2:
-        compartment,subcompartment = category
-        result = [compartment] + subcompartment.split(',')
-    elif len(category)==1:
-        compartment = category[0]
-        result = [compartment]
-        
-    return result
+    """transforms the category of a flowable into a list.
+    (e.g. ('air','urban') -> ['air','urban']
+          ('air')
+    . """
+    # if len(category)==2:
+    #     compartment,subcompartment = category
+    #     result = [compartment] + subcompartment.split(',')
+    # elif len(category)==1:
+    #     compartment = category[0]
+    #     result = [compartment]
+    reclass = {
+    # ('air',),
+    # ('air', 'indoor'),
+    # ('air', 'low population density, long-term'),
+    # ('air', 'lower stratosphere + upper troposphere'),
+    # ('air', 'non-urban air or from high stacks'),
+    # ('air', 'urban air close to ground'),
+    # ('economic', 'primary production factor'),
+    # ('inventory indicator', 'output flow'),
+    # ('inventory indicator', 'resource use'),
+    # ('inventory indicator', 'waste'),
+    # ('natural resource', 'biotic'),
+    # ('natural resource', 'fossil well'),
+    # ('natural resource', 'in air'),
+    # ('natural resource', 'in ground'),
+    # ('natural resource', 'in water'),
+    # ('natural resource', 'land'),
+    # ('social',),
+    # ('soil',),
+    # ('soil', 'agricultural'),
+    # ('soil', 'forestry'),
+    # ('soil', 'industrial'),
+    # ('water',),
+    # ('water', 'fossil well'),
+    # ('water', 'ground-'),
+    ('water', 'ground-, long-term'):('water', 'ground-','long-term'),
+    # ('water', 'ocean'),
+    # ('water', 'surface water')
+    }
+
+    return reclass.get(category,category)
+
+
+def initialise_cf_list(method)->list:
+
+    cfs = []
+    for (database,code),cf in method.load():
+            
+        if isinstance(cf,dict):
+            raise NotImplementedError(f"for the moment uncertain CF are not supported {cf}")
+
+        flow = bw2data.Database(database).get(code)
+        cntx = read_category(flow['categories'])
+
+        cf = CharacterisationFactor(database=database,
+                                    code=code,
+                                    name=flow['name'],
+                                    unit=flow['unit'],
+                                    directionality=flow['type'],
+                                    context=cntx,
+                                    level=len(cntx),
+                                    value=cf)
+        cfs += [cf]
+    return cfs
