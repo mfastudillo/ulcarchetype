@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools >= 69.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ulcarchetype"
+dynamic = ["version"]
+dependencies = [
+  "bw2data>=4.0.dev46",
+]
+requires-python = ">=3.8"
+authors = [
+  {name = "Miguel F. Astudillo", email = "miguelfastudillo@gmail.com"},
+]
+description = "Lovely Spam! Wonderful Spam!"
+readme = "README.md"
+license = {file = "LICENSE.txt"}
+keywords = ["lca", "uncertainty","lcia"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python"
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+
+[tool.setuptools.dynamic]
+version = {attr = "ulcarchetype.__version__"}
+
+[project.urls]
+Repository = "https://github.com/mfastudillo/ulcarchetype.git"
+"Bug Tracker" = "https://github.com/mfastudillo/ulcarchetype/issues"
+Changelog = "https://github.com/mfastudillo/ulcarchetype/blob/master/CHANGELOG.md"
+

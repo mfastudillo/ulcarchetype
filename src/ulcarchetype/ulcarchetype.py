@@ -3,7 +3,7 @@ from dataclasses import dataclass,field
 from typing import List
 import math
 import statistics
-import brightway2 as bw
+import bw2data as bd
 
 @dataclass
 class CharacterisationFactor():
@@ -69,7 +69,7 @@ class LCIAMethod():
             if isinstance(cf,dict):
                 raise ValueError(f"for the moment uncertain CF are not supported {cf}")
 
-            flow = bw.get_activity(key)
+            flow = bd.get_activity(key)
             database,code = key
             cntx = read_category(flow['categories'])
 
@@ -103,7 +103,7 @@ class LCIAMethod():
     def transform_method2(self,method):
 
         for key,cf in method.load():
-            flow = bw.get_activity(key)
+            flow = bd.get_activity(key)
             database,code = key
             cntx = read_category(flow['categories'])
 
