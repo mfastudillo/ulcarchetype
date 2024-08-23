@@ -1,18 +1,18 @@
-import brightway2 as bw
+import bw2data as bd
 import pandas as pd
 import numpy as np
 import math
 
 def is_method_uncertain(method):
     """check if method is uncertain"""
-    cfs = bw.Method(method).load()
+    cfs = bd.Method(method).load()
     cf_values = [cf_value for flow, cf_value in cfs]
 
     return any(isinstance(x, dict) for x in cf_values)
 
 
-def uncertain_archetype_dict(biosphere_database=bw.Database("biosphere3")):
-    """returns a dict with the key for all the flows without archetype defiend"""
+def uncertain_archetype_dict(biosphere_database=bd.Database("biosphere3"))->dict:
+    """returns a dict with the key for all the flows without archetype defined"""
 
     biosphere_dict_unclassified = {}
     for f in biosphere_database:
@@ -120,15 +120,15 @@ def get_cf_info(m):
     given the name. Currently prepared only for methods without
     uncertainty, where CF are only a tuple (key,amount)"""
 
-    assert m in bw.methods,f"{m} not in bw.methods"
+    assert m in bd.methods,f"{m} not in bd.methods"
     assert is_method_uncertain(m) is False,f"{m} has uncertain CF. Not yet supported"
 
-    M = bw.Method(m)
+    M = bd.Method(m)
     cfs = M.load()
     info = []
     for cf in cfs:
-        key,value = cf
-        flow = bw.get_activity(key)
+        (db,code),value = cf
+        flow = bd.get_node(database=db,code=code)
         compartments = flow["categories"]
         compartment = compartments[0]
         try:
