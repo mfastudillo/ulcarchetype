@@ -20,7 +20,9 @@ class CharacterisationFactor():
     level: int = None
     uncertainty_param: dict = field(default_factory=dict)
 
-
+    def __repr__(self):
+        
+        return(f"{self.name} {self.context} {self.value}")
 @dataclass
 class LCIAMethod():
     """representation of an LCIA method"""
