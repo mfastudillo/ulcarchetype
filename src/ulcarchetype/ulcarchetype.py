@@ -98,21 +98,28 @@ class LCIAMethod():
         # add the possible values #TODO as a separate function.
         for cf in sorted(self.cfs,key=lambda x:x.level,reverse=True):
             children = self.get_descendents(cf)
+            #TODO: maybe here we can use given frequencies by the user
+            # or otherwise default to something like this
 
             if len(children)>0:
                 
                 possible_values = []
                 for child in children:
                     # if it only has one then
-                    if child.values_possible == []:
-                        child.values_possible = [{'value':child.value,
-                                                  'freq':1/len(children)}]
-                        #TODO: figure out if this makes more sense:
-                        #child.values_possible = [child.value]
+
+                    child.values_possible = [{'value':child.value,
+                                              'freq':1/len(children)}]
+                    
+                    #TODO: figure out if this makes more sense:
+                    #child.values_possible = [child.value]
 
                     possible_values += child.values_possible
-            
-                cf.values_possible = possible_values
+            else:
+                # TODO
+                possible_values = []
+    
+
+            cf.values_possible = possible_values
 
             # if there are only two possible values and are very very close,
             # ignore the case
