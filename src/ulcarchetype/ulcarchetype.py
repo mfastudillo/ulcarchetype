@@ -91,7 +91,7 @@ class LCIAMethod():
     def transform_method2(self,method):
         """transforms an brightway impact assessment method on a method following
         the object structure of the ulcarchetype library. """
-
+        self.medatata = method.metadata
         self.cfs = initialise_cf_list(method)
 
         # once all cfs have been added, we can loop again and 
@@ -108,7 +108,7 @@ class LCIAMethod():
                         child.values_possible = [{'value':child.value,
                                                   'freq':1/len(children)}]
                         #TODO: figure out if this makes more sense:
-                        child.values_possible = [child.value]
+                        #child.values_possible = [child.value]
 
                     possible_values += child.values_possible
             
@@ -175,7 +175,7 @@ class LCIAMethod():
             else:
                 cf_value = cf.uncertainty_param
             
-            list_of_cf.append(((cf.database,cf.code),cf_value))
+            list_of_cf.append((cf.id,cf_value))
         
         return list_of_cf
     
@@ -260,16 +260,16 @@ def read_category(category):
 def initialise_cf_list(method)->list:
 
     cfs = []
-    for (database,code),cf in method.load():
+    for (_id),cf in method.load():
             
         if isinstance(cf,dict):
             raise NotImplementedError(f"for the moment uncertain CF are not supported {cf}")
 
-        flow = bd.Database(database).get(code)
+        flow = bd.get_node(id=_id)
         cntx = read_category(flow['categories'])
 
-        cf = CharacterisationFactor(database=database,
-                                    code=code,
+        cf = CharacterisationFactor(database=flow['database'],
+                                    code=flow['code'],
                                     name=flow['name'],
                                     unit=flow['unit'],
                                     directionality=flow['type'],
