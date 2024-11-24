@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import math
-import bw2data as bwd
+import bw2data as bd
 
 def is_method_uncertain(method:tuple):
     """check if method is uncertain
@@ -9,13 +9,13 @@ def is_method_uncertain(method:tuple):
         method name (tuple)
     returns:
         Bool indicating if the method has uncertain characterisation factors"""
-    cfs = bwd.Method(method).load()
+    cfs = bd.Method(method).load()
     cf_values = [cf_value for flow, cf_value in cfs]
 
     return any(isinstance(x, dict) for x in cf_values)
 
 
-def uncertain_archetype_dict(biosphere_database=bwd.Database("biosphere3")):
+def uncertain_archetype_dict(biosphere_database=bd.Database("biosphere3")):
     """returns a dict with the key for all the flows without archetype defiend"""
 
     biosphere_dict_unclassified = {}
@@ -129,15 +129,15 @@ def get_cf_info(m:tuple):
         dailed info on the characterisation factors (pandas DataFrame)
     """
 
-    assert m in bwd.methods,f"{m} not in bw.methods"
+    assert m in bd.methods,f"{m} not in bw.methods"
     assert is_method_uncertain(m) is False,f"{m} has uncertain CF. Not yet supported"
 
-    M = bwd.Method(m)
+    M = bd.Method(m)
     cfs = M.load()
     info = []
     for cf in cfs:
         key,value = cf
-        flow = bwd.get_activity(key)
+        flow = bd.get_activity(key)
         compartments = flow["categories"]
         compartment = compartments[0]
         try:

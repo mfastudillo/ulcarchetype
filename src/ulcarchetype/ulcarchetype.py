@@ -3,7 +3,7 @@ from dataclasses import dataclass,field
 from typing import List
 import math
 import statistics
-import bw2data
+import bw2data as bd
 import numpy as np
 
 @dataclass
@@ -107,7 +107,9 @@ class LCIAMethod():
                     if child.values_possible == []:
                         child.values_possible = [{'value':child.value,
                                                   'freq':1/len(children)}]
-                    
+                        #TODO: figure out if this makes more sense:
+                        child.values_possible = [child.value]
+
                     possible_values += child.values_possible
             
                 cf.values_possible = possible_values
@@ -263,7 +265,7 @@ def initialise_cf_list(method)->list:
         if isinstance(cf,dict):
             raise NotImplementedError(f"for the moment uncertain CF are not supported {cf}")
 
-        flow = bw2data.Database(database).get(code)
+        flow = bd.Database(database).get(code)
         cntx = read_category(flow['categories'])
 
         cf = CharacterisationFactor(database=database,
