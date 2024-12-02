@@ -11,6 +11,7 @@ class CharacterisationFactor():
     """representation of a characterization factor of an LCIA method"""
     database: str = None
     code: str = None
+    id:int = None
     name: str = None
     unit: str = None
     directionality: str = None
@@ -53,8 +54,8 @@ class LCIAMethod():
         
         return children
 
-    def set_freqparent(self,totalamount_dict):
-        """adds a frequency to a CF relative to the parent level"""
+    def set_freqparent(self,totalamount_dict:dict):
+        """adds a frequency to a CF relative to the parent level [DEPRECATED]"""
 
         # loops the CF, get the children and set 
         for cf in sorted(self.cfs,key=lambda x:x.level,reverse=True):
@@ -67,7 +68,7 @@ class LCIAMethod():
     
     def transform_method(self,method):
         """transforms an brightway impact assessment method on a method following
-        the object structure of the ulcarchetype library. """
+        the object structure of the ulcarchetype library. [DEPRECATED]"""
 
         self.cfs = initialise_cf_list(method)
 
@@ -106,6 +107,9 @@ class LCIAMethod():
                 possible_values = []
                 for child in children:
                     # if it only has one then
+                    # FIXME: this is probably wrong, an ef may be the child
+                    # but also parent. This overwrites the values_possible..
+                    # perhaps it works doing it in specific order
 
                     child.values_possible = [{'value':child.value,
                                               'freq':1/len(children)}]
@@ -277,6 +281,7 @@ def initialise_cf_list(method)->list:
 
         cf = CharacterisationFactor(database=flow['database'],
                                     code=flow['code'],
+                                    id=flow.id,
                                     name=flow['name'],
                                     unit=flow['unit'],
                                     directionality=flow['type'],
